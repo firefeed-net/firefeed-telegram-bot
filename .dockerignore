@@ -1,0 +1,35 @@
+# Exclude unnecessary files for image build
+.git
+.gitignore
+README.md
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+# Exclude data directories if not needed in image
+data/
+# Exclude tests if not needed in production
+test_*.py
+# Exclude run scripts if using CMD in Dockerfile
+run_*.sh
+# Exclude chrome-extension if not needed in container
+chrome-extension/

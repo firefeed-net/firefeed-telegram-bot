@@ -1,0 +1,55 @@
+version: '3.13'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  firefeed-telegram-bot:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=host.docker.internal  # Or Host IP
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=5432
+      - BOT_TOKEN=${BOT_TOKEN}
+      - WEBHOOK_LISTEN=0.0.0.0
+      - WEBHOOK_PORT=5000
+      - LOG_LEVEL=INFO
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - WEBHOOK_URL_PATH=${WEBHOOK_URL_PATH}
+      - API_BASE_URL=${API_BASE_URL}
+      - BOT_API_KEY=${BOT_API_KEY}
+    volumes:
+      - ./data:/app/data  # Mount images volume
+    depends_on:
+      - redis
+      - db  # If DB also in docker-compose
+    restart: unless-stopped
+
+  # Example configuration of Postgres DB image, if you plan to use it inside a container
+  # db:
+  #   image: postgres:13
+  #   environment:
+  #     POSTGRES_DB: firefeed
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  redis_data:
