@@ -1,6 +1,6 @@
 python-telegram-bot[job-queue,webhooks]==22.5
 aiohttp==3.12.15
-pydantic==2.11.7
+pydantic==2.12.5
 aiopg==1.4.0
 redis==7.0.1
 psutil==7.1.3
