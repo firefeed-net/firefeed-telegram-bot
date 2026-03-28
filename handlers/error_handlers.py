@@ -1,7 +1,7 @@
 # telegram_bot/handlers/error_handlers.py - Error handlers
 import logging
 
-from telegram.error import NetworkError, BadRequest
+from telegram.error import ServiceUnavailableException, BadRequest
 from telegram.ext import ContextTypes
 
 logger = logging.getLogger(__name__)
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Error handler."""
-    if isinstance(context.error, NetworkError):
+    if isinstance(context.error, ServiceUnavailableException):
         logger.error("Network error detected. Retrying...")
     elif isinstance(context.error, BadRequest):
         if "Query is too old" in str(context.error):

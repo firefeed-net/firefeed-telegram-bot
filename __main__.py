@@ -15,9 +15,9 @@ import os
 import sys
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from core.di_container import get_service
-from core.config.logging_config import setup_logging
-from core.config.services_config import get_service_config
+from firefeed_core.di_container import get_service
+from firefeed_core.config.logging_config import setup_logging
+from firefeed_core.config.services_config import get_service_config
 from telegram_bot.services.user_state_service import initialize_user_manager, cleanup_expired_data
 from telegram_bot.services.api_service import close_http_session
 from telegram_bot.handlers.command_handlers import (
@@ -48,8 +48,8 @@ async def post_stop(application) -> None:
 
     try:
         # Close database pool via DI
-        from core.di_container import get_service
-        from core.interfaces import IDatabasePool
+        from firefeed_core.di_container import get_service
+        from firefeed_core.interfaces import IDatabasePool
         db_pool_adapter = get_service(IDatabasePool)
         await db_pool_adapter.close()
         logger.info("Shared connection pool closed")
@@ -70,7 +70,7 @@ def main():
     asyncio.set_event_loop(loop)
 
     # Setup DI container in the current loop
-    from core.di_container import setup_di_container
+    from firefeed_core.di_container import setup_di_container
     loop.run_until_complete(setup_di_container())
 
     # Get bot configuration from DI

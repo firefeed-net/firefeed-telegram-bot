@@ -1,7 +1,7 @@
 # telegram_bot/utils/keyboard_utils.py - Keyboard creation utilities
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
-from core.translations import get_message
+from firefeed_core.translations import get_message
 
 
 def get_main_menu_keyboard(lang="en"):

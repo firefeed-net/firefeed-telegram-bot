@@ -11,7 +11,7 @@ from services.user_state_service import (
 )
 from services.api_service import get_categories
 from utils.keyboard_utils import get_main_menu_keyboard, get_language_selection_keyboard
-from core.translations import get_message, LANG_NAMES
+from firefeed_core.translations import get_message, LANG_NAMES
 
 logger = logging.getLogger(__name__)
 

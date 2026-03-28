@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 
 from services.user_state_service import get_current_user_language, set_current_user_language, set_user_menu
 from utils.keyboard_utils import get_main_menu_keyboard
-from core.translations import get_message
+from firefeed_core.translations import get_message
 
 logger = logging.getLogger(__name__)
 

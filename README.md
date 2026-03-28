@@ -1,150 +1,499 @@
-# Firefeed Telegram Bot
+# FireFeed Telegram Bot
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-Passing-green.svg)](https://github.com/yuremweiland/firefeed/actions)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://docker.com)
+[![CI/CD](https://img.shields.io/badge/CI/CD-Configured-orange.svg)](https://github.com/firefeed-net/firefeed-telegram-bot/actions)
 
-This module contains a Telegram bot for Firefeed that allows users to receive RSS news in Telegram.
+Telegram bot for FireFeed RSS notifications. This microservice provides a complete Telegram bot implementation for receiving RSS feed notifications with translation support, user management, and comprehensive monitoring.
 
-## Description
+> **Note**: This service is part of the [FireFeed platform](https://github.com/firefeed-net/firefeed) microservices architecture. It can be run standalone or as part of the complete FireFeed ecosystem with [API](https://github.com/firefeed-net/firefeed-api) and [RSS Parser](https://github.com/firefeed-net/firefeed-rss-parser).
 
-The Telegram bot serves as the main interface for user interaction with the FireFeed system. It provides personalized news delivery, subscription management, and multilingual support.
+## 🚀 Features
 
-### Key Features
+### Core Functionality
+- **RSS Notifications**: Receive notifications for new RSS feed articles
+- **Telegram Integration**: Full Telegram bot with command support
+- **User Management**: Complete user registration and management system
+- **Subscription System**: Category-based subscription management
+- **Translation Support**: Multi-language support with automatic translation
 
-- **Personalized news delivery**: Users receive news based on category subscriptions in their preferred language
-- **Multilingual interface**: Full localization to English, Russian, German, and French languages
-- **Subscription management**: Easy subscription setup for categories via inline keyboards
-- **Automatic publishing**: News is automatically published to configured Telegram channels
+### Advanced Features
+- **Rate Limiting**: Smart rate limiting to prevent spam
+- **Caching**: Redis-based caching for performance
+- **Health Monitoring**: Comprehensive health checks and monitoring
+- **Error Handling**: Robust error handling and logging
+- **Security**: Production-ready security measures
 
-### Publication Rate Limits
+### Technical Features
+- **Modern Python**: Python 3.11+ with async/await patterns
+- **Type Safety**: Full type hints and dataclasses
+- **Dependency Injection**: Clean service architecture
+- **Configuration Management**: Environment-based configuration
+- **Container Native**: Docker containerization ready
 
-To prevent spam and ensure fair usage, the bot implements sophisticated rate limits for news publications:
+## 📋 Table of Contents
 
-#### Feed-level Limits
-Each RSS feed has configurable limits:
-- `cooldown_minutes`: Minimum time between publications from this feed (default: 60 minutes)
-- `max_news_per_hour`: Maximum number of news items per hour from this feed (default: 10)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Monitoring](#monitoring)
+- [Contributing](#contributing)
+- [License](#license)
 
-#### Telegram Publication Checks
-Before publishing any news to Telegram channels, the system performs two checks:
+## 🛠️ Installation
 
-1. **Quantity limit**:
-   - Counts publications from the same feed in the last 60 minutes
-   - If count >= `max_news_per_hour`, skips publication
-   - Uses data from the `rss_items_telegram_bot_published` table
+### Prerequisites
 
-2. **Time limit**:
-   - Checks time since last publication from the same feed
-   - If elapsed time < `cooldown_minutes`, skips publication
+- Python 3.11+
+- Docker & Docker Compose
+- Redis (for caching)
+- PostgreSQL (for user data)
 
-##### How it works
-```python
-# Example: feed with cooldown_minutes=120, max_news_per_hour=1
-# - Maximum 1 publication per 120 minutes
-# - Minimum 120 minutes between publications
+### Quick Start
 
-# Before each publication attempt:
-recent_count = get_recent_telegram_publications_count(feed_id, 60)
-if recent_count >= 1:
-    skip_publication()
-
-last_time = get_last_telegram_publication_time(feed_id)
-if last_time:
-    elapsed = now - last_time
-    if elapsed < timedelta(minutes=120):
-        skip_publication()
-```
-
-This ensures that even if multiple news items from the same feed are processed simultaneously, only the allowed number will be published to Telegram, preventing limit violations and maintaining user experience quality.
-
-## Installation and Setup
-
-1. Install dependencies:
+1. **Clone the repository:**
    ```bash
-   pip install -r requirements.txt
+   git clone https://github.com/firefeed-net/firefeed-telegram-bot.git
+   cd firefeed-telegram-bot
    ```
 
-2. Copy `.env.example` to `.env` and fill in the variables:
+2. **Install dependencies:**
+   ```bash
+   pip install -e .
+   ```
+
+3. **Configure environment:**
    ```bash
    cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-3. Configure environment variables in `.env`:
-   - `BOT_TOKEN`: Bot token from @BotFather
-   - `WEBHOOK_URL`: Public URL for webhook
-   - `API_BASE_URL`: API server URL
-   - `BOT_API_KEY`: Key for API authentication
-   - Database and Redis settings
+4. **Start with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
 
-## Running
+5. **Access the bot:**
+   - Bot will be available at the configured webhook URL
+   - Health check: `http://localhost:8081/health`
+   - Metrics: `http://localhost:8080/metrics`
 
-Run the bot:
+## ⚙️ Configuration
+
+### Environment Variables
+
+The bot uses environment variables for configuration. Copy `.env.example` to `.env` and customize:
+
 ```bash
-python -m telegram_bot
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_USE_WEBHOOK=false  # true for webhook, false for polling
+
+# FireFeed API Integration
+FIREFEED_API_BASE_URL=http://localhost:8000
+FIREFEED_API_KEY=your_api_key
+
+# Database Configuration
+DATABASE_HOST=localhost
+DATABASE_NAME=firefeed_telegram_bot
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Translation Configuration
+TRANSLATION_ENABLED=true
+TRANSLATION_DEFAULT_LANGUAGE=en
+
+# Monitoring
+LOG_LEVEL=INFO
+PROMETHEUS_ENABLED=true
 ```
 
-Or use the script:
-```bash
-./run_bot.sh
-```
+### Configuration Files
 
-## Structure
+- `config/services_config.py` - Service configuration classes
+- `config/logging_config.py` - Logging configuration
+- `docker-compose.yml` - Docker orchestration
+- `Dockerfile` - Container build configuration
 
-- `core/`: Common dependencies (config, repositories, services)
-- `handlers/`: Command and callback handlers
-- `services/`: Bot services (API, DB, Telegram)
-- `models/`: Data models
-- `utils/`: Utilities for formatting and validation
-- `translations.py`: Localization
+## 🤖 Usage
 
-## Functionality
+### Telegram Bot Commands
 
-- Receiving RSS news
+The bot supports the following commands:
+
+- `/start` - Start the bot and register user
+- `/help` - Show help and available commands
+- `/subscribe` - Subscribe to categories
+- `/unsubscribe` - Unsubscribe from categories
+- `/subscriptions` - View current subscriptions
+- `/language` - Change notification language
+- `/settings` - Configure notification settings
+- `/stats` - View usage statistics
+
+### User Management
+
+Users are automatically registered when they start the bot. The system provides:
+
+- User registration and profile management
+- Language preferences
+- Notification settings
 - Subscription management
-- Multilingual support
-- Sending to channels and private messages
+- Activity tracking
 
-## Webhook Setup
+### Subscription Management
 
-For webhook mode, configure Nginx:
+Users can subscribe to RSS feed categories:
 
-```nginx
-server {
-    listen 80;
-    server_name your_domain.com;
+1. Use `/subscribe` to see available categories
+2. Select categories via inline keyboard
+3. Use `/subscriptions` to view current subscriptions
+4. Use `/unsubscribe` to remove subscriptions
 
-    location /webhook {
-        proxy_pass http://127.0.0.1:5000/webhook;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+## 📚 API Reference
+
+### Services
+
+#### TelegramBotService
+Main bot service handling all Telegram interactions.
+
+```python
+from services.telegram_bot import TelegramBotService
+
+bot_service = TelegramBotService()
+await bot_service.start_polling()  # Start polling
+# or
+await bot_service.start_webhook()  # Start webhook
 ```
 
-## Systemd Service
+#### UserService
+User management and authentication.
 
-For production, use a systemd service:
+```python
+from services.user_service import UserService
 
-```ini
-[Unit]
-Description=FireFeed Telegram Bot Service
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/path/to/firefeed/apps/telegram_bot
-Environment=HOME=/path/to/data
-ExecStart=/path/to/firefeed/apps/telegram_bot/run_bot.sh
-Restart=on-failure
-RestartSec=10
-TimeoutStopSec=30
-KillMode=mixed
-KillSignal=SIGTERM
-SendSIGKILL=yes
-NoNewPrivileges=no
-
-[Install]
-WantedBy=default.target
+user_service = UserService()
+await user_service.register_user(user_id, username)
+user = await user_service.get_user(user_id)
 ```
+
+#### SubscriptionService
+Category subscription management.
+
+```python
+from services.subscription_service import SubscriptionService
+
+subscription_service = SubscriptionService()
+await subscription_service.subscribe_to_category(user_id, category_id)
+subscriptions = await subscription_service.get_user_subscriptions(user_id)
+```
+
+#### NotificationService
+Notification sending and management.
+
+```python
+from services.notification_service import NotificationService
+
+notification_service = NotificationService()
+await notification_service.schedule_notification(user_id, articles, language)
+await notification_service.start_notification_worker()
+```
+
+#### TranslationService
+Text translation and language support.
+
+```python
+from services.translation_service import TranslationService
+
+translation_service = TranslationService()
+translated_text = await translation_service.translate_text(text, target_language)
+translated_articles = await translation_service.translate_articles(articles, language)
+```
+
+### Configuration
+
+#### Environment Configuration
+
+```python
+from config import get_config
+
+config = get_config()
+print(f"Environment: {config.environment}")
+print(f"Telegram Token: {config.telegram.token}")
+print(f"Database Host: {config.database.host}")
+```
+
+#### Service Configuration
+
+```python
+from config.services_config import Config, Environment
+
+# Set environment
+from config import set_environment
+set_environment(Environment.PRODUCTION)
+
+# Get configuration
+from config import get_config
+config = get_config()
+```
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test module
+pytest tests/test_telegram_bot.py
+
+# Run with coverage
+pytest --cov=firefeed_telegram_bot tests/
+
+# Run integration tests
+pytest tests/test_integration.py
+```
+
+### Test Structure
+
+```
+tests/
+├── __init__.py
+├── conftest.py          # Test configuration and fixtures
+├── test_telegram_bot.py # Bot functionality tests
+├── test_user_service.py # User service tests
+├── test_subscription_service.py # Subscription tests
+├── test_notification_service.py # Notification tests
+├── test_translation_service.py # Translation tests
+├── test_cache_service.py # Cache tests
+├── test_health_checker.py # Health check tests
+├── test_main.py         # Main module tests
+├── test_integration.py  # Integration tests
+└── README.md           # Test documentation
+```
+
+### Test Configuration
+
+Test configuration is managed in `tests/conftest.py`:
+
+```python
+import pytest
+from config import set_environment
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """Setup test environment."""
+    set_environment(Environment.TESTING)
+    # Additional test setup
+```
+
+## 🚢 Deployment
+
+### Docker Deployment
+
+#### Development Environment
+
+```bash
+# Start development environment
+docker-compose up -d
+
+# View logs
+docker-compose logs -f firefeed-telegram-bot
+
+# Stop services
+docker-compose down
+```
+
+#### Production Environment
+
+```bash
+# Build production image
+docker build -t firefeed/telegram-bot:latest .
+
+# Deploy with production compose
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Monitor services
+docker-compose ps
+```
+
+### Kubernetes Deployment
+
+Kubernetes manifests are available in the `k8s/` directory:
+
+```bash
+# Apply Kubernetes manifests
+kubectl apply -f k8s/
+
+# Check deployment status
+kubectl get pods -l app=firefeed-telegram-bot
+
+# View logs
+kubectl logs -f deployment/firefeed-telegram-bot
+```
+
+### Environment-Specific Configuration
+
+#### Development
+```bash
+ENVIRONMENT=development
+DEBUG=true
+TELEGRAM_USE_WEBHOOK=false
+```
+
+#### Production
+```bash
+ENVIRONMENT=production
+DEBUG=false
+TELEGRAM_USE_WEBHOOK=true
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
+```
+
+## 📊 Monitoring
+
+### Health Checks
+
+The bot provides comprehensive health checks:
+
+- **Health Endpoint**: `GET /health`
+- **Metrics Endpoint**: `GET /metrics` (Prometheus format)
+- **Service Status**: Individual service health checks
+
+### Monitoring Stack
+
+#### Prometheus Metrics
+
+```bash
+# Access metrics
+curl http://localhost:8080/metrics
+```
+
+#### Grafana Dashboards
+
+Grafana dashboards are configured in `monitoring/grafana/`:
+
+- Bot performance metrics
+- User activity statistics
+- Service health monitoring
+- Error rate tracking
+
+#### Alerting
+
+Alerting rules are configured in `monitoring/prometheus/alerts.yml`:
+
+- Service downtime alerts
+- High error rate notifications
+- Performance degradation warnings
+
+### Log Monitoring
+
+Structured logging with correlation IDs:
+
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+logger.info("User action", extra={
+    "user_id": user_id,
+    "action": "subscribe",
+    "category_id": category_id
+})
+```
+
+## 🔄 Integration
+
+### With FireFeed API
+The Telegram Bot integrates with FireFeed API for:
+- **User management** - Registration, authentication, preferences
+- **RSS items** - Fetching news for notifications
+- **Categories** - Managing user subscriptions
+- **Translations** - Multi-language support
+
+### With Other Services
+- **[FireFeed API](https://github.com/firefeed-net/firefeed-api)** - Main API service
+- **[FireFeed RSS Parser](https://github.com/firefeed-net/firefeed-rss-parser)** - RSS feed parsing service
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+1. **Fork the repository**
+2. **Clone your fork:**
+   ```bash
+   git clone https://github.com/your-username/firefeed-telegram-bot.git
+   cd firefeed-telegram-bot
+   ```
+3. **Create a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+4. **Install development dependencies:**
+   ```bash
+   pip install -e ".[dev]"
+   ```
+5. **Run tests:**
+   ```bash
+   pytest
+   ```
+6. **Submit a pull request**
+
+### Code Style
+
+This project follows PEP 8 and uses Black for code formatting:
+
+```bash
+# Format code
+black .
+
+# Check code style
+flake8
+
+# Type checking
+mypy firefeed_telegram_bot/
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [aiogram](https://github.com/aiogram/aiogram) - Telegram bot framework
+- [Redis](https://redis.io/) - Caching and session storage
+- [PostgreSQL](https://www.postgresql.org/) - Database management
+- [Prometheus](https://prometheus.io/) - Monitoring and alerting
+
+## 📞 Support
+
+For support and questions:
+
+- **GitHub Issues**: [Create an issue](https://github.com/firefeed-net/firefeed-telegram-bot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/firefeed-net/firefeed-telegram-bot/discussions)
+- **Documentation**: [Read the docs](https://github.com/firefeed-net/firefeed)
+- **Community**: [Join our community](https://t.me/firefeed_community)
+- **Email**: mail@firefeed.net
+
+## 🔗 Related Projects
+
+- [FireFeed Platform](https://github.com/firefeed-net/firefeed) - Main platform documentation
+- [FireFeed API](https://github.com/firefeed-net/firefeed-api) - Main API service
+- [FireFeed RSS Parser](https://github.com/firefeed-net/firefeed-rss-parser) - RSS parsing service
+
+---
+
+**Made with ❤️ by the FireFeed Team**
+
+[![GitHub stars](https://img.shields.io/github/stars/firefeed-net/firefeed-telegram-bot.svg?style=social&label=Star)](https://github.com/firefeed-net/firefeed-telegram-bot)
+[![Twitter Follow](https://img.shields.io/twitter/follow/firefeed?style=social)](https://twitter.com/firefeed)

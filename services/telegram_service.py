@@ -13,9 +13,9 @@ from utils.formatting_utils import (
     format_personal_rss_message, format_channel_rss_message,
     create_lang_note, create_hashtags, truncate_caption
 )
-from core.translations import TRANSLATED_FROM_LABELS, READ_MORE_LABELS
-from core.di_container import get_service
-from core.utils.text import TextProcessor
+from firefeed_core.translations import TRANSLATED_FROM_LABELS, READ_MORE_LABELS
+from firefeed_core.di_container import get_service
+from firefeed_core.utils.text import TextProcessor
 from services.database_service import (
     get_translation_id,
     check_bot_published,
@@ -25,6 +25,7 @@ from services.database_service import (
     get_last_telegram_publication_time
 )
 from datetime import datetime, timezone, timedelta
+from firefeed_core.api_client.client import APIClient
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,8 @@ async def cleanup_old_user_send_locks():
 @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2, max=30))
 async def send_personal_rss_items(bot, prepared_rss_item: PreparedRSSItem, subscribers_cache=None):
     """Sends personal RSS items to subscribers."""
-    # Ensure telegram_user_service is initialized
-    if user_state_service.telegram_user_service is None:
+    # Ensure API client is initialized
+    if not user_state_service.api_client:
         await user_state_service.initialize_user_manager()
 
     news_id = prepared_rss_item.original_data.get("id")
@@ -74,8 +75,19 @@ async def send_personal_rss_items(bot, prepared_rss_item: PreparedRSSItem, subsc
     if subscribers_cache is not None:
         subscribers = subscribers_cache.get(category, [])
     else:
-        # Fallback to old method if cache not provided
-        subscribers = await user_state_service.telegram_user_service.get_subscribers_for_category(category)
+        # Get API client from user state service
+        api_client = user_state_service.api_client
+        if api_client and hasattr(api_client, 'get'):
+            # Direct API call using APIClient
+            try:
+                response = await api_client.get(f"/api/v1/subscriptions/category/{category}")
+                subscriptions = response.get('results', [])
+                subscribers = [sub.get('user', {}) for sub in subscriptions]
+            except Exception as e:
+                logger.error(f"Error getting subscribers for category {category}: {e}")
+                subscribers = []
+        else:
+            subscribers = []
 
     if not subscribers:
         logger.debug(f"No subscribers for category {category}")
@@ -199,7 +211,7 @@ async def send_personal_rss_items(bot, prepared_rss_item: PreparedRSSItem, subsc
                         )
                         message_id = message.message_id
 
-                    # Mark as sent in DB
+                    # Mark as sent in DB via API
                     await mark_bot_published(
                         news_id=news_id,
                         translation_id=translation_id,
@@ -237,7 +249,13 @@ async def send_personal_rss_items(bot, prepared_rss_item: PreparedRSSItem, subsc
 
                 except Forbidden as e:
                     logger.warning(f"User {user_id} has blocked the bot, removing from subscribers: {e}")
-                    await user_state_service.telegram_user_service.remove_blocked_user(user_id)
+                    # Block user via API
+                    try:
+                        api_client = user_state_service.api_client
+                        if api_client and hasattr(api_client, 'patch'):
+                            await api_client.patch(f"/api/v1/users/telegram/{user_id}/block")
+                    except Exception as block_error:
+                        logger.error(f"Error blocking user {user_id}: {block_error}")
                     continue  # Skip this user
                 except BadRequest as e:
                     if "Wrong type of the web page content" in str(e):
@@ -259,7 +277,12 @@ async def send_personal_rss_items(bot, prepared_rss_item: PreparedRSSItem, subsc
                             )
                         except Forbidden as send_error:
                             logger.warning(f"User {user_id} has blocked the bot during text send, removing from subscribers: {send_error}")
-                            await user_state_service.telegram_user_service.remove_blocked_user(user_id)
+                            try:
+                                api_client = user_state_service.api_client
+                                if api_client and hasattr(api_client, 'patch'):
+                                    await api_client.patch(f"/api/v1/users/telegram/{user_id}/block")
+                            except Exception as block_error:
+                                logger.error(f"Error blocking user {user_id}: {block_error}")
                             continue
                         except Exception as send_error:
                             logger.error(f"Error sending message to user {user_id}: {send_error}")
@@ -289,7 +312,7 @@ async def post_to_channel(bot, prepared_rss_item: PreparedRSSItem):
     async with feed_lock:
         logger.info(f"Publishing RSS item to channels: {original_title[:50]}...")
 
-        # Check Telegram publication limits
+        # Check Telegram publication limits via API
         cooldown_minutes, max_news_per_hour = await get_feed_cooldown_and_max_news(feed_id)
         recent_telegram_count = await get_recent_telegram_publications_count(feed_id, 60)
 
@@ -445,7 +468,7 @@ async def post_to_channel(bot, prepared_rss_item: PreparedRSSItem):
                         logger.error(f"Error sending message to channel {channel_id}: {e}")
                         continue
 
-                # Mark publication in DB
+                # Mark publication in DB via API
                 await mark_bot_published(
                     news_id=news_id,
                     translation_id=translation_id,

@@ -8,7 +8,8 @@ from models.rss_item import PreparedRSSItem
 from services.api_service import get_rss_items_list
 from services import user_state_service
 from services.telegram_service import send_personal_rss_items, post_to_channel, SEND_SEMAPHORE
-from core.di_container import get_service
+from firefeed_core.di_container import get_service
+from firefeed_core.api_client.client import APIClient
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +127,18 @@ async def monitor_rss_items_task(context):
         config_obj = get_service(dict)
         channel_categories = config_obj.get('channel_categories', ["world", "technology", "lifestyle", "politics", "economy", "autos", "sports"])
 
-        if user_state_service.telegram_user_service is not None:
-            for category in unique_categories:
-                subscribers = await user_state_service.telegram_user_service.get_subscribers_for_category(category)
+        # Get API client for user operations
+        api_client = get_service(APIClient)
+        
+        for category in unique_categories:
+            try:
+                # Get subscribers via API
+                try:
+                    response = await api_client.get(f"/api/v1/subscriptions/category/{category}")
+                    subscribers = response.get('results', [])
+                except Exception as e:
+                    logger.error(f"Error getting subscribers for category {category}: {e}")
+                    subscribers = []
                 subscribers_cache[category] = subscribers
                 channel_categories_cache[category] = category in channel_categories
                 if not subscribers:
@@ -137,10 +147,8 @@ async def monitor_rss_items_task(context):
                     logger.info(f"Category '{category}' is suitable for general channel")
                 else:
                     logger.info(f"Category '{category}' is NOT suitable for general channel")
-        else:
-            # No telegram_user_service - disable personal sending
-            logger.warning("telegram_user_service not available - personal RSS sending disabled")
-            for category in unique_categories:
+            except Exception as e:
+                logger.error(f"Error getting subscribers for category {category}: {e}")
                 subscribers_cache[category] = []
                 channel_categories_cache[category] = category in channel_categories
 
