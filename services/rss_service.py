@@ -164,7 +164,7 @@ async def monitor_rss_items_task(context):
 
         logger.info("All RSS items from current batch processed.")
 
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         logger.error("Timeout getting RSS items")
     except Exception as e:
         logger.error(f"Error in monitoring task: {e}")

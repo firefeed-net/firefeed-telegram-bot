@@ -41,7 +41,7 @@ class CacheService:
                 host=self.config.redis.host,
                 port=self.config.redis.port,
                 db=self.config.redis.db,
-                password=self.config.redis.password,
+                password=self.config.redis.password or None,
                 socket_timeout=self.config.redis.socket_timeout,
                 socket_connect_timeout=self.config.redis.socket_connect_timeout,
                 socket_keepalive=self.config.redis.socket_keepalive,

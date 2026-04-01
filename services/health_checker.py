@@ -162,18 +162,13 @@ class HealthChecker:
             import aiohttp
             
             async with aiohttp.ClientSession() as session:
-                # Test API endpoint with query parameters
-                params = {
-                    "base_url": self.config.firefeed_api.base_url,
-                    "token": self.config.firefeed_api.api_key,
-                    "service_id": "telegram-bot",
-                    "httpx_kwargs": "{}"
-                }
+                headers = {"Authorization": f"Bearer {self.config.firefeed_api.api_key}"}
+                timeout = aiohttp.ClientTimeout(total=10)
                 
                 async with session.get(
                     f"{self.config.firefeed_api.base_url}/api/v1/health",
-                    params=params,
-                    timeout=aiohttp.ClientTimeout(total=10)
+                    headers=headers,
+                    timeout=timeout
                 ) as response:
                     if response.status == 200:
                         api_info = await response.json()
@@ -187,7 +182,6 @@ class HealthChecker:
                             "status": "unhealthy",
                             "message": f"FireFeed API returned status {response.status}"
                         }
-                        
         except Exception as e:
             return {
                 "status": "unhealthy",
@@ -284,3 +278,4 @@ class HealthChecker:
         """Set health check interval in seconds."""
         self.check_interval = interval
         logger.info(f"Health check interval set to {interval} seconds")
+

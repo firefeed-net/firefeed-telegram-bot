@@ -38,7 +38,7 @@ async def validate_image_url(image_url: str) -> bool:
 
                 return True
 
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         logger.debug(f"Timeout checking image: {image_url}")
         return False
     except Exception as e:
