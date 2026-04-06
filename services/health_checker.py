@@ -83,26 +83,32 @@ class HealthChecker:
             health_data["checks_total"] += 1
             if redis_health["status"] == "healthy":
                 health_data["checks_passed"] += 1
+                logger.info(f"Redis health check: PASSED")
             else:
                 health_data["overall_status"] = "unhealthy"
-            
+                logger.warning(f"Redis health check: FAILED - {redis_health.get('message')}")
+
             # Check FireFeed API
             api_health = await self._check_firefeed_api()
             health_data["services"]["firefeed_api"] = api_health
             health_data["checks_total"] += 1
             if api_health["status"] == "healthy":
                 health_data["checks_passed"] += 1
+                logger.info(f"FireFeed API health check: PASSED")
             else:
                 health_data["overall_status"] = "unhealthy"
-            
+                logger.warning(f"FireFeed API health check: FAILED - {api_health.get('message')}")
+
             # Check Telegram Bot
             bot_health = await self._check_telegram_bot()
             health_data["services"]["telegram_bot"] = bot_health
             health_data["checks_total"] += 1
             if bot_health["status"] == "healthy":
                 health_data["checks_passed"] += 1
+                logger.info(f"Telegram Bot health check: PASSED")
             else:
                 health_data["overall_status"] = "unhealthy"
+                logger.warning(f"Telegram Bot health check: FAILED - {bot_health.get('message')}")
             
             # Update last check
             self.last_check = health_data
@@ -160,13 +166,17 @@ class HealthChecker:
         """Check FireFeed API connectivity."""
         try:
             import aiohttp
+
+            api_key = self.config.firefeed_api.api_key
+            logger.info(f"Checking FireFeed API at {self.config.firefeed_api.base_url}/api/v1/internal/health with token: {api_key[:10]}..." if api_key else "Checking FireFeed API - NO TOKEN PROVIDED")
             
             async with aiohttp.ClientSession() as session:
-                headers = {"Authorization": f"Bearer {self.config.firefeed_api.api_key}"}
+                # Use internal endpoint with service token authentication
+                headers = {"Authorization": f"Bearer {api_key}"}
                 timeout = aiohttp.ClientTimeout(total=10)
-                
+
                 async with session.get(
-                    f"{self.config.firefeed_api.base_url}/api/v1/health",
+                    f"{self.config.firefeed_api.base_url}/api/v1/internal/health",
                     headers=headers,
                     timeout=timeout
                 ) as response:
@@ -178,11 +188,14 @@ class HealthChecker:
                             "api_info": api_info
                         }
                     else:
+                        error_text = await response.text()
+                        logger.warning(f"FireFeed API returned status {response.status}: {error_text}")
                         return {
                             "status": "unhealthy",
-                            "message": f"FireFeed API returned status {response.status}"
+                            "message": f"FireFeed API returned status {response.status}: {error_text}"
                         }
         except Exception as e:
+            logger.error(f"FireFeed API connection failed: {e}")
             return {
                 "status": "unhealthy",
                 "message": f"FireFeed API connection failed: {e}"

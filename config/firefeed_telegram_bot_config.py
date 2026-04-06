@@ -182,7 +182,7 @@ class TelegramBotConfig:
         """Load FireFeed API configuration from environment."""
         return FireFeedAPIConfig(
             base_url=os.getenv("FIREFEED_API_BASE_URL", "http://localhost:8000"),
-            api_key=os.getenv("FIREFEED_API_KEY", ""),
+            api_key=os.getenv("FIREFEED_API_SERVICE_TOKEN", ""),
             timeout=int(os.getenv("FIREFEED_API_TIMEOUT", "30")),
             max_retries=int(os.getenv("FIREFEED_API_MAX_RETRIES", "3")),
             retry_delay=float(os.getenv("FIREFEED_API_RETRY_DELAY", "1.0"))

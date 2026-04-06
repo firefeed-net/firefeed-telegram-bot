@@ -96,7 +96,7 @@ TELEGRAM_USE_WEBHOOK=false  # true for webhook, false for polling
 
 # FireFeed API Integration
 FIREFEED_API_BASE_URL=http://localhost:8000
-FIREFEED_API_KEY=your_api_key
+FIREFEED_API_SERVICE_TOKEN=your_api_key
 
 # Database Configuration
 DATABASE_HOST=localhost
