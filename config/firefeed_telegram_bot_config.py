@@ -181,7 +181,7 @@ class TelegramBotConfig:
     def _load_firefeed_api_config(self) -> FireFeedAPIConfig:
         """Load FireFeed API configuration from environment."""
         return FireFeedAPIConfig(
-            base_url=os.getenv("FIREFEED_API_BASE_URL", "http://localhost:8000"),
+            base_url=os.getenv("API_BASE_URL", "http://localhost:8000"),
             api_key=os.getenv("FIREFEED_API_SERVICE_TOKEN", ""),
             timeout=int(os.getenv("FIREFEED_API_TIMEOUT", "30")),
             max_retries=int(os.getenv("FIREFEED_API_MAX_RETRIES", "3")),

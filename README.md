@@ -95,7 +95,7 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_USE_WEBHOOK=false  # true for webhook, false for polling
 
 # FireFeed API Integration
-FIREFEED_API_BASE_URL=http://localhost:8000
+API_BASE_URL=http://localhost:8000
 FIREFEED_API_SERVICE_TOKEN=your_api_key
 
 # Database Configuration
