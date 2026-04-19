@@ -1,14 +1,6 @@
 # telegram_bot/models/rss_item.py - RSS item data structures
-from dataclasses import dataclass
-from typing import Dict, Any, Optional
+# Use unified Pydantic model from firefeed_core
+from firefeed_core.models.translation_models import PreparedRSSItem
 
 
-@dataclass
-class PreparedRSSItem:
-    """Structure for storing prepared RSS item."""
-
-    original_data: Dict[str, Any]
-    translations: Dict[str, Dict[str, str]]
-    image_filename: Optional[str]
-    video_filename: Optional[str]
-    feed_id: int
+__all__ = ['PreparedRSSItem']
